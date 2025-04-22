@@ -1,0 +1,34 @@
+# Capitales de los estados mexicanos
+# Formato: Nombre, Latitud, Longitud
+Aguascalientes, 21.8818, -102.2916
+Mexicali, 32.6245, -115.4522
+La Paz, 24.1426, -110.3127
+Campeche, 19.8301, -90.5349
+Tuxtla Gutiérrez, 16.7538, -93.0979
+Chihuahua, 28.6353, -106.0889
+Ciudad de México, 19.4326, -99.1332
+Saltillo, 25.4267, -101.0029
+Colima, 19.2433, -103.7242
+Durango, 24.0277, -104.6532
+Guanajuato, 21.0190, -101.2574
+Chilpancingo, 17.5506, -99.5018
+Pachuca, 20.0911, -98.7645
+Guadalajara, 20.6597, -103.3496
+Toluca, 19.2826, -99.6557
+Morelia, 19.7060, -101.1950
+Cuernavaca, 18.9242, -99.2216
+Tepic, 21.5044, -104.8946
+Monterrey, 25.6866, -100.3161
+Oaxaca, 17.0732, -96.7266
+Puebla, 19.0414, -98.2063
+Querétaro, 20.5888, -100.3899
+Chetumal, 18.5018, -88.2962
+San Luis Potosí, 22.1565, -100.9855
+Culiacán, 24.8087, -107.3940
+Hermosillo, 29.0729, -110.9559
+Villahermosa, 17.9892, -92.9281
+Ciudad Victoria, 23.7369, -99.1411
+Tlaxcala, 19.3139, -98.2404
+Xalapa, 19.5438, -96.9102
+Mérida, 20.9674, -89.5926
+Zacatecas, 22.7709, -102.5832

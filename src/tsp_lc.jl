@@ -74,55 +74,73 @@ end
 
 # 3. RESOLVER EL TSP CON FORMULACIÓN MTZ
 function solve_tsp_capitals(dist_matrix, nombres, start_city_name="Monterrey")
-
     function subtour_elim(cb_data, cb_where::Cint)
+        # Esta función de callback es llamada en diferentes etapas de la optimización
         if cb_where == GRB_CB_MIPSOL
-            # Get solution values
+            # Carga los valores de la solución actual desde el solver
             Gurobi.load_callback_variable_primal(cb_data, cb_where)
+            # Obtiene los valores de todas las variables x en la solución actual
             x_sol = callback_value.(cb_data, x)
+            # Obtiene las dimensiones de la matriz de distancias
             n, m = size(dist_matrix)
+            # Reorganiza el vector solución a una matriz
             x_sol = reshape(x_sol, n, m)
+            # Convierte los valores de la solución a binarios (0 o 1)
             x_sol .= x_sol .> 0.5
-
-            next = Dict{Int, Int}()
+            # Crea un diccionario para rastrear la siguiente ciudad desde cada ciudad
+            next = Dict{Int,Int}()
             for i in 1:n
                 for j in 1:n
+                    # Si hay una arista de i a j (x_sol[i,j] = 1)
                     if i != j && x_sol[i, j] == 1
+                        # La ciudad j sigue a la ciudad i en el recorrido
                         next[i] = j
                     end
                 end
             end
-
-            # Find all subtours
+            # Inicializa un arreglo para rastrear qué ciudades han sido visitadas
             visited = falses(n)
+            # Inicializa un vector para almacenar todos los subcircuitos encontrados
             subtours = Vector{Vector{Int}}()
+            # Itera a través de todas las ciudades
             for i in 1:n
+                # Si la ciudad i aún no ha sido visitada
                 if !visited[i]
+                    # Comienza un nuevo subcircuito en la ciudad i
                     current = i
                     cycle = Int[]
+                    # Sigue el camino hasta regresar a la ciudad inicial
                     while true
+                        # Añade la ciudad actual al ciclo
                         push!(cycle, current)
+                        # Marca la ciudad actual como visitada
                         visited[current] = true
+                        # Avanza a la siguiente ciudad en el camino
                         current = next[current]
+                        # Si hemos regresado a la ciudad inicial, rompe el ciclo
                         current == i && break
                     end
+                    # Añade el ciclo completo a la lista de subcircuitos
                     push!(subtours, cycle)
                 end
             end
-
-            # Add constraints for subtours
+            # Si se encuentra más de un subcircuito, añade restricciones para eliminarlos
             if length(subtours) > 1
                 for S in subtours
+                    # Si este subcircuito no incluye todas las ciudades
                     if length(S) < n
-                        # Add constraint: sum edges in S <= |S| - 1
-                        edge_sum = sum(x[i,j] for i in S, j in S if i != j)
+                        # Crea una restricción: la suma de aristas dentro del subcircuito debe ser <= |S|-1
+                        # Esto fuerza a la solución a incluir al menos una arista que salga del subcircuito
+                        edge_sum = sum(x[i, j] for i in S, j in S if i != j)
                         con = @build_constraint(edge_sum <= length(S) - 1)
+                        # Envía esta restricción perezosa al solver
                         MOI.submit(model, MOI.LazyConstraint(cb_data), con)
                     end
                 end
             end
         end
     end
+
     n = size(dist_matrix, 1)
 
     model = direct_model(Gurobi.Optimizer())
@@ -133,7 +151,6 @@ function solve_tsp_capitals(dist_matrix, nombres, start_city_name="Monterrey")
 
     # Variables de decisión
     @variable(model, x[1:n, 1:n], Bin)  # x[i,j] = 1 si vamos de ciudad i a j
-    #@variable(model, u[1:n] >= 0)  # Variables auxiliares para eliminar subcircuitos
 
     # Función objetivo: minimizar la distancia total
     @objective(model, Min, sum(dist_matrix[i, j] * x[i, j] for i in 1:n, j in 1:n))
@@ -146,15 +163,9 @@ function solve_tsp_capitals(dist_matrix, nombres, start_city_name="Monterrey")
         # Cada ciudad tiene exactamente una entrada
         @constraint(model, sum(x[j, i] for j in 1:n if i != j) == 1)
     end
+    # Resolver
+    optimize!(model)
 
-    # Restricciones MTZ para eliminar subcircuitos
-    #for i in 2:n, j in 2:n
-    #    if i != j
-    #        @constraint(model, u[i] - u[j] + n * x[i, j] <= n - 1)
-    #    end
-    #end
-
-    # Encontrar el índice de la ciudad inicial
     start_idx = findfirst(nombre -> nombre == start_city_name, nombres)
     if isnothing(start_idx)
         # Si no encontramos la ciudad, usar la primera ciudad
@@ -166,17 +177,6 @@ function solve_tsp_capitals(dist_matrix, nombres, start_city_name="Monterrey")
 
     # Empezar en la ciudad inicial
     start_city = start_idx
-    #@constraint(model, u[start_city] == 0)
-
-    # Límites para las variables u
-    #for i in 1:n
-    #    if i != start_city
-    #        @constraint(model, 1 <= u[i] <= n - 1)
-    #    end
-    #end
-
-    # Resolver
-    optimize!(model)
 
     # Extraer solución
     if termination_status(model) == MOI.OPTIMAL ||
@@ -227,7 +227,7 @@ function plot_mexico_tsp_with_gmt(tour, nombres, latitudes, longitudes, dist_mat
     tour_coords = hcat(tour_lons, tour_lats)
 
     # Calcular distancia total
-    total_dist = sum(dist_matrix[tour[i], tour[i%length(tour)+1]] for i in 1:length(tour))
+    total_dist = sum(dist_matrix[tour[i], tour[i%length(tour)+1]] for i in eachindex(tour))
 
     # Configurar región y proyección optimizada para México
     region = [-118.5, -86.0, 14.0, 33.5]
@@ -414,7 +414,6 @@ function run_taco_inspector_analysis(capitals_file="capitales_mexico.txt",
     println("  Mínima: ", round(minimum(filter(x -> x < 1e6, dist_matrix)), digits=2))
     println("  Máxima: ", round(maximum(filter(x -> x < 1e6, dist_matrix)), digits=2))
     println("  Promedio: ", round(mean(filter(x -> x < 1e6, dist_matrix)), digits=2))
-    println("  Total (si se visitaran todas secuencialmente): ", round(sum(filter(x -> x < 1e6, dist_matrix)) / 2, digits=2))
 
     # 3. Resolver el TSP
     tour, distance, gap, solution_time = solve_tsp_capitals(dist_matrix, nombres, start_city)
@@ -431,7 +430,7 @@ function run_taco_inspector_analysis(capitals_file="capitales_mexico.txt",
 
     # Imprimir ruta
     println("\nRUTA ÓPTIMA:")
-    for i in 1:length(tour)
+    for i in eachindex(tour)
         println("$(i). $(nombres[tour[i]])")
     end
 
