@@ -1,4 +1,5 @@
 # Ejercicios Prácticos: Modelado Matemático con Julia y JuMP
+#### IV EPIO Eduardo Salazar Treviño
 
 ## Ejercicio 1: Programación Lineal Básica
 
